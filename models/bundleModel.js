@@ -1,27 +1,35 @@
 const mongoose = require('mongoose');
 
-// Skema Bundle
-const bundleSchema = new mongoose.Schema({
-    bundle_id: {
-        type: String,
-        required: true,
-        unique: true
-    },
+const bundleSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
-    totalprice: {
-        type: Number,
+    image: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    total_price: {
+      type: Number,
+      required: true,
+    },
+    products: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
         required: true,
-        default: 0
-    },
-    products: [{
-        type: String,
-        ref: 'Product', 
-        required: true
-    }]
-});
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  },
+);
 
 const Bundle = mongoose.model('Bundle', bundleSchema);
 
