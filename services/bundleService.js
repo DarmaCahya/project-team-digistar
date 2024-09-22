@@ -1,8 +1,11 @@
 const Bundle = require('../models/bundleModel');
 const { saveImage, deleteImage } = require('./imageService');
+const Product = require('../models/productModel');
 
 async function findAllBundles(req) {
   try {
+    await checkAndDeleteSingleProductBundles();
+
     const { search, minPrice, maxPrice, isActive, sortBy, order } = req.query;
 
     const query = {};
@@ -46,6 +49,22 @@ async function findBundleById(id) {
 
 async function createBundle(data, file) {
   try {
+    if (!data.products || data.products.length < 2) {
+      throw new Error('Bundle must have more than one product');
+    }
+
+    const productSet = new Set(data.products);
+    if (productSet.size !== data.products.length) {
+      throw new Error('Duplicate products are not allowed in the bundle');
+    }
+
+    for(const productId of data.products){
+      const existingProduct = await Product.findById(productId);
+      if(!existingProduct){
+        throw new Error(`Product with id ${productId} not found`);
+      }
+    }
+    
     const imagePath = await saveImage(file);
 
     const newBundle = new Bundle({ ...data, image: imagePath });
@@ -103,6 +122,23 @@ async function deleteBundle(id) {
     return bundle;
   } catch (error) {
     console.log('Error deleteBundle service: ', error);
+    throw error;
+  }
+}
+
+async function checkAndDeleteSingleProductBundles() {
+  try {
+    const bundles = await Bundle.find();
+    console.log(`Found ${bundles.length} bundles`);
+
+    for (const bundle of bundles) {
+      if (bundle.products.length <= 1) {
+        console.log(`Deleting bundle with id: ${bundle._id} because it has only 1 product`);
+        await Bundle.findByIdAndDelete(bundle._id);
+      }
+    }
+  } catch (error) {
+    console.log('Error in checkAndDeleteSingleProductBundles:', error);
     throw error;
   }
 }

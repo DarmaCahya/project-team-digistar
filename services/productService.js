@@ -1,5 +1,6 @@
 const Product = require('../models/productModel');
 const { saveImage, deleteImage } = require('./imageService');
+const Bundle = require('../models/bundleModel');
 
 async function findAllProducts(req) {
   try {
@@ -60,6 +61,11 @@ async function createProduct(data, file) {
       image: imagePath,
     };
 
+    const existingProduct = await Product.findOne({ name: newData.name });
+    if (existingProduct) {
+      throw new Error(`Product with name "${newData.name}" already exists.`);
+    }
+
     const newProduct = new Product(newData);
     const savedProduct = await newProduct.save();
     return savedProduct;
@@ -111,6 +117,25 @@ async function deleteProduct(id) {
       deleteImage(product.image);
     }
 
+    const bundles = await Bundle.find({ products: id });
+    console.log('Bundles found:', bundles.length);
+
+    for (const bundle of bundles){
+      bundle.products = bundle.products.filter(
+        (bundleProduct) => !bundleProduct.equals(id)
+      );
+
+      let newTotalPrice = 0;
+      for (const bundleProduct of bundle.products){
+        const product = await Product.findById(bundleProduct);
+        newTotalPrice += product.price;
+      }
+      bundle.price = newTotalPrice;
+      console.log(`Updated total price for bundle: ${newTotalPrice}`);
+
+      await bundle.save();
+    };
+    
     await Product.findByIdAndDelete({ _id: id });
     return product;
   } catch (error) {
