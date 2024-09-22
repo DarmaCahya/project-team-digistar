@@ -91,9 +91,8 @@ async function updateProduct(id, data, file) {
     if (data.minPurchase) updatedData.minPurchase = Number(data.minPurchase);
 
     if (file) {
-      const existingImagePath = existingProduct.image.split('/uploads/')[1];
-      await saveImage(file, existingImagePath);
-      updatedData.image = `/uploads/${Date.now()}${path.extname(file.originalname)}`;
+      const newImagePath = await saveImage(file, existingProduct.image);
+      updatedData.image = newImagePath;
     }
 
     const product = await Product.findByIdAndUpdate({ _id: id }, updatedData, {

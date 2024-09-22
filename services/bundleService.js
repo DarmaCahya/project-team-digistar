@@ -70,13 +70,7 @@ async function createBundle(data, file) {
     const newBundle = new Bundle({ ...data, image: imagePath });
     const savedBundle = await newBundle.save();
 
-    await savedBundle.populate('products');
-    const bundlePrice = savedBundle.products.reduce((total, product) => {
-      return total + product.price * (product.quantity || 1); // Use quantity if available
-    }, 0);
-    savedBundle.price = bundlePrice;
-
-    return await savedBundle.save();
+    return await calculateBundlePrice(savedBundle);
   } catch (error) {
     console.log('Error createBundle service: ', error);
     throw error;
@@ -93,16 +87,16 @@ async function updateBundle(id, data, file) {
     const updatedData = { ...data };
 
     if (file) {
-      const existingImagePath = existingBundle.image.split('/uploads/')[1];
-      await saveImage(file, existingImagePath);
-      updatedData.image = `/uploads/${Date.now()}${path.extname(file.originalname)}`;
+      const newImagePath = await saveImage(file, existingBundle.image);
+      updatedData.image = newImagePath;
     }
 
     const updatedBundle = await Bundle.findByIdAndUpdate({ _id: id }, updatedData, {
       new: true,
       runValidators: true,
     });
-    return updatedBundle;
+
+    return await calculateBundlePrice(updatedBundle);
   } catch (error) {
     console.log('Error updateBundle service: ', error);
     throw error;
@@ -141,6 +135,16 @@ async function checkAndDeleteSingleProductBundles() {
     console.log('Error in checkAndDeleteSingleProductBundles:', error);
     throw error;
   }
+}
+
+async function calculateBundlePrice(bundle) {
+  await bundle.populate('products');
+  const bundlePrice = bundle.products.reduce((total, product) => {
+    return total + product.price;
+  }, 0);
+  bundle.price = bundlePrice;
+
+  return await bundle.save();
 }
 
 module.exports = {

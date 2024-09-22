@@ -10,11 +10,7 @@ async function saveImage(file, existingFilePath = null) {
     }
 
     if (existingFilePath) {
-      try {
-        await fs.unlink(path.join(uploadPath, existingFilePath));
-      } catch (error) {
-        console.error('Error deleting old file:', error);
-      }
+      await deleteImage(existingFilePath);
     }
 
     const filename = Date.now() + path.extname(file.originalname);
@@ -27,11 +23,11 @@ async function saveImage(file, existingFilePath = null) {
   }
 }
 
-const deleteImage = (imagePath) => {
-  const fullPath = path.join(__dirname, '../uploads', imagePath.split('/uploads/')[1]);
-  if (fs.existsSync(fullPath)) {
-    fs.unlinkSync(fullPath);
+async function deleteImage(imagePath) {
+  const existingFullPath = path.join(__dirname, '../uploads', imagePath.split('/uploads/')[1]);
+  if (fs.existsSync(existingFullPath)) {
+    fs.unlinkSync(existingFullPath);
   }
-};
+}
 
 module.exports = { saveImage, deleteImage };
